@@ -48,9 +48,9 @@ public abstract class SQLiteConnection implements AutoCloseable {
         }
     }
 
-    public abstract void initConnection() throws SQLException;
+    protected abstract void initConnection() throws SQLException;
 
-    public void createTable(Statement statement, boolean ifNotExists, String tableName, String... columns){
+    protected void createTable(Statement statement, boolean ifNotExists, String tableName, String... columns){
         StringBuilder query = new StringBuilder("create table ");
         if(ifNotExists){
             query.append("if not exists ");
@@ -68,11 +68,11 @@ public abstract class SQLiteConnection implements AutoCloseable {
         }
     }
 
-    public void createTable(Statement statement, String tableName, String... columns){
+    protected void createTable(Statement statement, String tableName, String... columns){
         createTable(statement, true, tableName, columns);
     }
 
-    public Statement getStatement(){
+    protected Statement getStatement(){
         Statement statement = null;
         try{
             statement = connection.createStatement();
@@ -83,12 +83,87 @@ public abstract class SQLiteConnection implements AutoCloseable {
         return statement;
     }
 
-    public void prepareStatement(String queryName, String query, boolean returnKeys) throws SQLException{
+    protected void prepareStatement(String queryName, String query, boolean returnKeys) throws SQLException{
         preparedStatements.put(queryName, connection.prepareStatement(query, returnKeys ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS));
     }
 
-    public void prepareStatement(String queryName, String query) throws SQLException{
+    protected void prepareStatement(String queryName, String query) throws SQLException{
         prepareStatement(queryName, query, false);
+    }
+
+    protected Optional<String> executeUpdate(String queryName, boolean returnKeys, SQLValue<?>... values){
+        Optional<String> optional = Optional.empty();
+        try{
+            PreparedStatement statement = preparedStatements.get(queryName);
+            setStatementValues(statement, values);
+            statement.executeUpdate();
+            if(returnKeys){
+                try(ResultSet resultSet = statement.getGeneratedKeys()){
+                    if(resultSet.next()){
+                        optional = Optional.of(resultSet.getString(1));
+                    }
+                }
+            }
+        }catch (SQLException e){
+            e.printStackTrace();
+            System.exit(1);
+        }
+        return optional;
+    }
+
+    protected Optional<String> executeUpdate(String queryName, SQLValue<?>... values){
+        return executeUpdate(queryName, false, values);
+    }
+
+    protected boolean executeExistsQuery(String queryName, SQLValue<?>... values){
+        boolean result = false;
+        try{
+            PreparedStatement statement = preparedStatements.get(queryName);
+            setStatementValues(statement, values);
+            try(ResultSet resultSet = statement.executeQuery()){
+                if(resultSet.next()){
+                    result = resultSet.getInt(1) == 1;
+                }
+            }
+        }catch (SQLException e){
+            e.printStackTrace();
+            System.exit(1);
+        }
+        return result;
+    }
+
+    protected <T> T executeSingleValueQuery(String queryName, SQLFunction<T> function, SQLValue<?>... values){
+        T result = null;
+        try{
+            PreparedStatement statement = preparedStatements.get(queryName);
+            setStatementValues(statement, values);
+            try(ResultSet resultSet = statement.executeQuery()){
+                if(resultSet.next()){
+                    result = function.execute(resultSet);
+                }
+            }
+        }catch (SQLException e){
+            e.printStackTrace();
+            System.exit(1);
+        }
+        return result;
+    }
+
+    protected <T> ArrayList<T> executeMultiValueQuery(String queryName, SQLFunction<T> function, SQLValue<?>... values){
+        ArrayList<T> arrayList = new ArrayList<>();
+        try{
+            PreparedStatement statement = preparedStatements.get(queryName);
+            setStatementValues(statement, values);
+            try(ResultSet resultSet = statement.executeQuery()){
+                while(resultSet.next()){
+                    arrayList.add(function.execute(resultSet));
+                }
+            }
+        }catch (SQLException e){
+            e.printStackTrace();
+            System.exit(1);
+        }
+        return arrayList;
     }
 
     public void setAutoCommit(boolean autoCommit){
@@ -116,81 +191,6 @@ public abstract class SQLiteConnection implements AutoCloseable {
             e.printStackTrace();
             System.exit(1);
         }
-    }
-
-    public Optional<String> executeUpdate(String queryName, boolean returnKeys, SQLValue<?>... values){
-        Optional<String> optional = Optional.empty();
-        try{
-            PreparedStatement statement = preparedStatements.get(queryName);
-            setStatementValues(statement, values);
-            statement.executeUpdate();
-            if(returnKeys){
-                try(ResultSet resultSet = statement.getGeneratedKeys()){
-                    if(resultSet.next()){
-                        optional = Optional.of(resultSet.getString(1));
-                    }
-                }
-            }
-        }catch (SQLException e){
-            e.printStackTrace();
-            System.exit(1);
-        }
-        return optional;
-    }
-
-    public Optional<String> executeUpdate(String queryName, SQLValue<?>... values){
-        return executeUpdate(queryName, false, values);
-    }
-
-    public boolean executeExistsQuery(String queryName, SQLValue<?>... values){
-        boolean result = false;
-        try{
-            PreparedStatement statement = preparedStatements.get(queryName);
-            setStatementValues(statement, values);
-            try(ResultSet resultSet = statement.executeQuery()){
-                if(resultSet.next()){
-                    result = resultSet.getInt(1) == 1;
-                }
-            }
-        }catch (SQLException e){
-            e.printStackTrace();
-            System.exit(1);
-        }
-        return result;
-    }
-
-    public <T> T executeSingleValueSelectQuery(String queryName, SQLFunction<T> function, SQLValue<?>... values){
-        T result = null;
-        try{
-            PreparedStatement statement = preparedStatements.get(queryName);
-            setStatementValues(statement, values);
-            try(ResultSet resultSet = statement.executeQuery()){
-                if(resultSet.next()){
-                    result = function.execute(resultSet);
-                }
-            }
-        }catch (SQLException e){
-            e.printStackTrace();
-            System.exit(1);
-        }
-        return result;
-    }
-
-    public <T> ArrayList<T> executeMultiValueSelectQuery(String queryName, SQLFunction<T> function, SQLValue<?>... values){
-        ArrayList<T> arrayList = new ArrayList<>();
-        try{
-            PreparedStatement statement = preparedStatements.get(queryName);
-            setStatementValues(statement, values);
-            try(ResultSet resultSet = statement.executeQuery()){
-                while(resultSet.next()){
-                    arrayList.add(function.execute(resultSet));
-                }
-            }
-        }catch (SQLException e){
-            e.printStackTrace();
-            System.exit(1);
-        }
-        return arrayList;
     }
 
     @Override
