@@ -1,5 +1,8 @@
 package com.drallinger.sqlite;
 
+import com.drallinger.sqlite.blueprints.PreparedStatementBlueprint;
+import com.drallinger.sqlite.blueprints.TableBlueprint;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,16 +13,18 @@ public abstract class SQLiteConnection implements AutoCloseable {
     private static final String DEFAULT_DATABASE_FILE = ":memory:";
     private final Connection connection;
     private final HashMap<String, PreparedStatement> preparedStatements;
+    private final ArrayList<TableBlueprint> tableBlueprints;
+    private final ArrayList<PreparedStatementBlueprint> preparedStatementBlueprints;
 
     public SQLiteConnection(String databaseFile){
         connection = createConnection(databaseFile);
         preparedStatements = new HashMap<>();
-        try{
-            initConnection();
-        }catch (SQLException e){
-            e.printStackTrace();
-            System.exit(1);
-        }
+        tableBlueprints = new ArrayList<>();
+        preparedStatementBlueprints = new ArrayList<>();
+
+        initConnection();
+        createTables();
+        createPreparedStatements();
     }
 
     public SQLiteConnection(){
@@ -48,28 +53,53 @@ public abstract class SQLiteConnection implements AutoCloseable {
         }
     }
 
-    protected abstract void initConnection() throws SQLException;
+    protected abstract void initConnection();
 
+    @Deprecated
     protected void createTable(Statement statement, boolean ifNotExists, String tableName, String... columns){
-        StringBuilder query = new StringBuilder("create table ");
-        if(ifNotExists){
-            query.append("if not exists ");
-        }
-        query.append(tableName).append("(");
-        for(String column : columns){
-            query.append(column).append(",");
-        }
-        query.replace(query.length() - 1, query.length(), ");");
         try{
-            statement.executeUpdate(query.toString());
+            statement.executeUpdate(createTableQuery(new TableBlueprint(tableName, ifNotExists, columns)));
         }catch(SQLException e){
             e.printStackTrace();
             System.exit(1);
         }
     }
 
+    @Deprecated
     protected void createTable(Statement statement, String tableName, String... columns){
         createTable(statement, true, tableName, columns);
+    }
+
+    protected void createTable(String tableName, boolean ifNotExists, String... columns){
+        tableBlueprints.add(new TableBlueprint(tableName, ifNotExists, columns));
+    }
+
+    protected void createTable(String tableName, String... columns){
+        createTable(tableName, true, columns);
+    }
+
+    private String createTableQuery(TableBlueprint tableBlueprint){
+        StringBuilder query = new StringBuilder("create table ");
+        if(tableBlueprint.ifNotExists()){
+            query.append("if not exists ");
+        }
+        query.append(tableBlueprint.tableName()).append("(");
+        for(String column : tableBlueprint.columns()){
+            query.append(column).append(",");
+        }
+        query.replace(query.length() - 1, query.length(), ");");
+        return query.toString();
+    }
+
+    private void createTables(){
+        try(Statement statement = connection.createStatement()){
+            for(TableBlueprint tableBlueprint : tableBlueprints){
+                statement.executeUpdate(createTableQuery(tableBlueprint));
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     protected Statement getStatement(){
@@ -83,12 +113,29 @@ public abstract class SQLiteConnection implements AutoCloseable {
         return statement;
     }
 
-    protected void prepareStatement(String queryName, String query, boolean returnKeys) throws SQLException{
-        preparedStatements.put(queryName, connection.prepareStatement(query, returnKeys ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS));
+    protected void prepareStatement(String queryName, String query, boolean returnKeys){
+        preparedStatementBlueprints.add(new PreparedStatementBlueprint(queryName, query, returnKeys));
     }
 
-    protected void prepareStatement(String queryName, String query) throws SQLException{
+    protected void prepareStatement(String queryName, String query){
         prepareStatement(queryName, query, false);
+    }
+
+    private void createPreparedStatements(){
+        try{
+            for(PreparedStatementBlueprint preparedStatementBlueprint : preparedStatementBlueprints){
+                preparedStatements.put(
+                    preparedStatementBlueprint.queryName(),
+                    connection.prepareStatement(
+                        preparedStatementBlueprint.query(),
+                        preparedStatementBlueprint.returnKeys() ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS
+                    )
+                );
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     protected Optional<String> executeUpdate(String queryName, boolean returnKeys, SQLValue<?>... values){
