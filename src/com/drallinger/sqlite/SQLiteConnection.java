@@ -213,6 +213,10 @@ public abstract class SQLiteConnection implements AutoCloseable {
         return arrayList;
     }
 
+    protected boolean toBoolean(ResultSet rs, int index) throws SQLException{
+        return rs.getInt(index) == 1;
+    }
+
     public void setAutoCommit(boolean autoCommit){
         try{
             connection.setAutoCommit(autoCommit);

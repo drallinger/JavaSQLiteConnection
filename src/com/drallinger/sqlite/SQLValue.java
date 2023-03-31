@@ -26,6 +26,10 @@ public class SQLValue <T> {
         return new SQLValue<>(value, ValueType.TEXT);
     }
 
+    public static SQLValue<Integer> bool(boolean value){
+        return new SQLValue<>(value ? 1 : 0, ValueType.INTEGER);
+    }
+
     public T getValue(){
         return value;
     }
