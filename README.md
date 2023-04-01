@@ -7,9 +7,8 @@ import com.drallinger.sqlite.SQLiteConnection;
 
 import java.util.ArrayList;
 
-record Person(int ID, String name, int age, String job, boolean enrolled) {}
-
 public class TestConnection extends SQLiteConnection {
+    private record Person(int ID, String name, int age, String job, boolean enrolled) {}
     private final SQLFunction<Person> buildPerson;
 
     public TestConnection() {
@@ -32,13 +31,34 @@ public class TestConnection extends SQLiteConnection {
             "job text not null",
             "enrolled integer not null"
         );
-        prepareStatement("addPerson", "insert into people (name,age,job,enrolled) values (?,?,?,?);");
-        prepareStatement("personExists", "select exists(select 1 from people where name=?);");
-        prepareStatement("getPerson", "select rowid,name,age,job,enrolled from people where name=?;");
-        prepareStatement("getAllPeople", "select rowid,name,age,job,enrolled from people;");
-        prepareStatement("getPersonID", "select rowid from people where name=?;");
-        prepareStatement("getPersonName", "select name from people where rowid=?");
-        prepareStatement("getPeopleByEnrolledStatus", "select rowid,name,age,job,enrolled from people where enrolled=?;");
+        prepareStatement(
+            "addPerson",
+            "insert into people (name,age,job,enrolled) values (?,?,?,?);"
+        );
+        prepareStatement(
+            "personExists",
+            "select exists(select 1 from people where name=?);"
+        );
+        prepareStatement(
+            "getPerson",
+            "select rowid,name,age,job,enrolled from people where name=?;"
+        );
+        prepareStatement(
+            "getAllPeople",
+            "select rowid,name,age,job,enrolled from people;"
+        );
+        prepareStatement(
+            "getPersonID",
+            "select rowid from people where name=?;"
+        );
+        prepareStatement(
+            "getPersonName",
+            "select name from people where rowid=?"
+        );
+        prepareStatement(
+            "getPeopleByEnrolledStatus",
+            "select rowid,name,age,job,enrolled from people where enrolled=?;"
+        );
     }
 
     public void addPerson(String name, int age, String job, boolean enrolled){
@@ -117,7 +137,14 @@ public class TestConnection extends SQLiteConnection {
             }
 
             Person bob = connection.getPerson("Bob");
-            System.out.printf("ID: %s, Name: %s, Age: %s, Job: %s, Enrolled: %s%n", bob.ID(), bob.name(), bob.age(), bob.job(), bob.enrolled());
+            System.out.printf(
+                "ID: %s, Name: %s, Age: %s, Job: %s, Enrolled: %s%n",
+                bob.ID(),
+                bob.name(),
+                bob.age(),
+                bob.job(),
+                bob.enrolled()
+            );
 
             System.out.println("All people:");
             connection.getAllPeople().forEach(p -> {
