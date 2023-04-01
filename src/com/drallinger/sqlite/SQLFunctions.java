@@ -5,7 +5,7 @@ public class SQLFunctions {
         return rs -> rs.getInt(1);
     }
 
-    public static SQLFunction<Double> singleReal(){
+    public static SQLFunction<Double> singleDouble(){
         return rs -> rs.getDouble(1);
     }
 
