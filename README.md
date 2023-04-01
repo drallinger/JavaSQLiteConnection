@@ -1,4 +1,5 @@
 ## Usage Example:
+
 ```java
 import com.drallinger.sqlite.SQLFunction;
 import com.drallinger.sqlite.SQLFunctions;
@@ -18,7 +19,7 @@ public class TestConnection extends SQLiteConnection {
             rs.getString(2),
             rs.getInt(3),
             rs.getString(4),
-            toBoolean(rs, 5)
+            getBoolean(rs, 5)
         );
     }
 

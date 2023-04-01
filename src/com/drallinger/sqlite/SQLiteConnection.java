@@ -169,7 +169,7 @@ public abstract class SQLiteConnection implements AutoCloseable {
             setStatementValues(statement, values);
             try(ResultSet resultSet = statement.executeQuery()){
                 if(resultSet.next()){
-                    result = toBoolean(resultSet, 1);
+                    result = getBoolean(resultSet, 1);
                 }
             }
         }catch (SQLException e){
@@ -213,7 +213,7 @@ public abstract class SQLiteConnection implements AutoCloseable {
         return arrayList;
     }
 
-    protected boolean toBoolean(ResultSet rs, int index) throws SQLException{
+    protected boolean getBoolean(ResultSet rs, int index) throws SQLException{
         return rs.getInt(index) == 1;
     }
 
