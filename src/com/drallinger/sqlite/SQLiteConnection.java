@@ -162,14 +162,14 @@ public abstract class SQLiteConnection implements AutoCloseable {
         return executeUpdate(queryName, false, values);
     }
 
-    protected boolean executeExistsQuery(String queryName, SQLValue<?>... values){
+    protected boolean executeBooleanQuery(String queryName, SQLValue<?>... values){
         boolean result = false;
         try{
             PreparedStatement statement = preparedStatements.get(queryName);
             setStatementValues(statement, values);
             try(ResultSet resultSet = statement.executeQuery()){
                 if(resultSet.next()){
-                    result = resultSet.getInt(1) == 1;
+                    result = toBoolean(resultSet, 1);
                 }
             }
         }catch (SQLException e){

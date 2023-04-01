@@ -52,7 +52,7 @@ public class TestConnection extends SQLiteConnection {
     }
 
     public boolean personExists(String name){
-        return executeExistsQuery(
+        return executeBooleanQuery(
             "personExists",
             SQLValue.text(name)
         );

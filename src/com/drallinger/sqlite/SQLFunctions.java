@@ -12,8 +12,4 @@ public class SQLFunctions {
     public static SQLFunction<String> singleString(){
         return rs -> rs.getString(1);
     }
-
-    public static SQLFunction<Boolean> singleBoolean(){
-        return rs -> rs.getInt(1) == 1;
-    }
 }
